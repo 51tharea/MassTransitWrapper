@@ -36,6 +36,36 @@ namespace MassTransitWrapper
             ContainerBuilderBusConfigurator = registrationContext.GetService<IContainerBuilderBusConfigurator>();
         }
 
+        public IBusInitializer RegisterConsumer<TConsumer>(Action<IRabbitMqReceiveEndpointConfigurator> config) where TConsumer : class, IConsumer
+        {
+            Action<IRabbitMqBusFactoryConfigurator, IBusRegistrationContext> action = (cfg, context) =>
+            {
+                var queueName = KebabCaseEndpointNameFormatter.Instance.SanitizeName(typeof(TConsumer).Name)
+                    .Replace("consumer", "queue");
+
+                cfg.ReceiveEndpoint(queueName, ConfigureEndpoint<TConsumer>(config, context));
+            };
+
+            BuildBefore?.Add(action);
+
+            return this;
+        }
+
+        public IBusInitializer RegisterConsumer<TConsumer>(string sampleQueue, Action<IRabbitMqReceiveEndpointConfigurator> config) where TConsumer : class, IConsumer
+        {
+            Action<IRabbitMqBusFactoryConfigurator, IBusRegistrationContext> action = (cfg, context) =>
+            {
+                var queueName = KebabCaseEndpointNameFormatter.Instance.SanitizeName(typeof(TConsumer).Name)
+                    .Replace("consumer", "queue");
+
+                cfg.ReceiveEndpoint(queueName, ConfigureEndpoint<TConsumer>(config, context));
+            };
+
+            BuildBefore?.Add(action);
+
+            return this;
+        }
+
         public IBusInitializer RegisterRequestClient<TRequest>() where TRequest : class
         {
             Action<IContainerBuilderBusConfigurator> action = (cfg) => { cfg.AddRequestClient<TRequest>(); };
@@ -53,20 +83,6 @@ namespace MassTransitWrapper
             return config;
         }
 
-        public IBusInitializer RegisterConsumer<TConsumer>(Action<IRabbitMqReceiveEndpointConfigurator> config) where TConsumer : class, IConsumer
-        {
-            Action<IRabbitMqBusFactoryConfigurator, IBusRegistrationContext> action = (cfg, context) =>
-            {
-                var queueName = KebabCaseEndpointNameFormatter.Instance.SanitizeName(typeof(TConsumer).Name)
-                    .Replace("consumer", "queue");
-
-                cfg.ReceiveEndpoint(queueName, ConfigureEndpoint<TConsumer>(config, context));
-            };
-
-            BuildBefore?.Add(action);
-
-            return this;
-        }
 
         public IBusInitializer RegisterConsumer<TConsumer>(string queueName = null) where TConsumer : class, IConsumer
         {

@@ -1,5 +1,8 @@
-﻿using Autofac;
+﻿using System;
+using Autofac;
+using GreenPipes;
 using MassTransit;
+using MassTransit.RabbitMqTransport;
 using MassTransitWrapper;
 using MassTransitWrapperSample.Consumers;
 using Microsoft.Extensions.Configuration;
@@ -16,7 +19,27 @@ namespace MassTransitWrapperSample
             builder.Register(context => new BusInitializer(context.Resolve<IBusRegistrationContext>(),
                         context.Resolve<IConfiguration>(),
                         context.Resolve<ILoggerFactory>())
-                    .RegisterConsumer<SampleConsumer>()
+                    .RegisterConsumer<SampleConsumer>() /// default
+                    .RegisterConsumer<SampleConsumer>("Sample.Queue", p =>
+                    {
+                        p.PrefetchCount = 16;
+                        p.UseMessageRetry(r => r.Immediate(5));
+                        p.UseCircuitBreaker(c =>
+                        {
+                            //....
+                        });
+                        //....
+                    })
+                    .RegisterConsumer<SampleConsumer>(p =>
+                    {
+                        p.PrefetchCount = 16;
+                        p.UseMessageRetry(r => r.Immediate(5));
+                        p.UseCircuitBreaker(c =>
+                        {
+                            //....
+                        });
+                        //....
+                    }) // default alternative
                     .Build())
                 .SingleInstance()
                 .As<IBusControl>()
